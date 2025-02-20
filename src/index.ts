@@ -50,6 +50,16 @@ interface DiscordWebhook {
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
+		const uuid = request.url.split('/').pop();
+
+		if (request.method !== 'POST') {
+			return new Response('Method Not Allowed', { status: 405 });
+		}
+
+		if (uuid !== env.SONAR_UUID) {
+			return new Response('Unauthorized', { status: 401 });
+		}
+
 		const body = await request.json<SonarRequest>();
 
 		const content = `

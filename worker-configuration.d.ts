@@ -2,4 +2,5 @@
 
 interface Env {
 	DISCORD_WEBHOOK_URL: string;
+	SONAR_UUID: string;
 }
