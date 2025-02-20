@@ -36,7 +36,7 @@ interface SonarRequest {
 			metric: string;
 			operator: 'LESS_THAN' | 'GREATER_THAN' | 'EQUAL';
 			value: string;
-			status: 'OK' | 'FAILED' | 'NO_VALUE';
+			status: 'OK' | 'ERROR' | 'NO_VALUE';
 			errorThreshold: string;
 		}[];
 	};
@@ -47,6 +47,12 @@ interface DiscordWebhook {
 	content: string;
 	components?: object[];
 }
+
+const correspondence = {
+	LESS_THAN: '<',
+	GREATER_THAN: '>',
+	EQUAL: '=',
+};
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -61,14 +67,22 @@ export default {
 		}
 
 		const body = await request.json<SonarRequest>();
+		const failedConditions = body.qualityGate.conditions.filter((condition) => condition.status === 'ERROR');
 
 		const content = `
-		## ${body.status === 'SUCCESS' ? '✅' : '❌'} SonarQube Analysis ${body.status}
+		## ${body.qualityGate.status === 'OK' ? '✅' : '❌'} SonarQube Analysis ${body.qualityGate.status}
 **Project**: [${body.project.name}](https://github.com/PI-FindIt/${body.project.name})
 **Branch**: [${body.branch.name}](https://github.com/PI-FindIt/${body.project.name}/tree/${body.branch.name})
-**Quality Gate**: ${body.qualityGate.status}
 **Analysed At**: ${new Date(body.analysedAt)}
 [View Analysis](${body.project.url})
+
+${failedConditions.length > 0 ? '### ⚠️ Failed Conditions' : ''}
+${failedConditions
+	.map(
+		(condition) => `
+- **${condition.metric.replaceAll('_', ' ')}**: ${condition.value} ${correspondence[condition.operator]} ${condition.errorThreshold}`,
+	)
+	.join('\n')}
 `;
 
 		const webhook: DiscordWebhook = {
