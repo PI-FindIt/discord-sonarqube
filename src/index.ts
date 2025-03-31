@@ -67,6 +67,11 @@ export default {
 		}
 
 		const body = await request.json<SonarRequest>();
+
+		if (body.project.name.toUpperCase().includes('TQS') || body.project.name.toUpperCase().includes('HW')) {
+			return new Response('Project is not allowed', { status: 403 });
+		}
+
 		const failedConditions = body.qualityGate.conditions.filter((condition) => condition.status === 'ERROR');
 
 		const content = `
